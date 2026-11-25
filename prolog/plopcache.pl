@@ -1,9 +1,10 @@
 % plopcache: cache each output character under the values of just the inputs it reads. Two
 % inputs that agree on a character's inputs share that character's cached value, even if they
 % differ elsewhere, so a cache built from per-character programs hits far more often than one
-% keyed on the whole input. The cache is a value passed in and out.
+% keyed on the whole input. The cache is a value passed in and out, and may be shared by programs.
 %?- run_cached([in(0), plus(1, 2)], [1,2,3], [], O, C, H).        % O = [1,5], H = 0 hits
 %?- run_cached([in(0), plus(1, 2)], [1,2,3], [], _, C, _), run_cached([in(0), plus(1, 2)], [9,2,3], C, O, _, H).   % H = 1: the second character hits
+%?- run_cached([plus(0, 1), plus(0, 1)], [1,2], [], O, _, H).   % O = [3,3], H = 1: equal characters share
 :- module(plopcache, [eval_char/3, run/3, dep/2, key/4, run_cached/6, cache_size/2]).
 :- use_module(library(lists)).
 :- use_module(library(apply)).
@@ -19,8 +20,10 @@ dep(shift(I, _), [I]).
 dep(plus(I, J), D) :- sort([I, J], D).
 dep(const(_), []).
 
-% key(+K, +Formula, +Input, -Key): character K and the values of the inputs it reads.
-key(K, F, In, K-Vs) :- dep(F, D), maplist([I, V]>>nth0(I, In, V), D, Vs).
+% key(+K, +Formula, +Input, -Key): the formula and the values of the inputs it reads. The formula is
+% part of the key, so a cache shared by several programs never serves one program's answer to another,
+% and two characters with the same formula share an entry. (K, the character's place, is not needed.)
+key(_, F, In, F-Vs) :- dep(F, D), maplist([I, V]>>nth0(I, In, V), D, Vs).
 
 % run_cached(+Formulas, +Input, +Cache0, -Output, -Cache, -Hits): Cache is a list of Key-Char.
 run_cached(Fs, In, C0, Out, C, Hits) :- length(Fs, N), ( N =:= 0 -> Ks = [] ; Top is N - 1, numlist(0, Top, Ks) ),
