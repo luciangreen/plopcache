@@ -23,5 +23,8 @@ theorem(hit_on_agreeing_inputs) :-
     forall(( prog(Fs), str(A), str(B), nth0(K, Fs, F), dep(F, D), forall(member(I, D), ( nth0(I, A, X), nth0(I, B, X) )) ),
            ( run_cached(Fs, A, [], _, C, _), key(K, F, B, Key), memberchk(Key-_, C) )).
 
-% 4. The cache holds at most one entry per character per value of its inputs (never duplicates).
+% 4. The cache holds at most one entry per formula per value of its inputs (never duplicates).
 theorem(no_duplicate_entries) :- forall(( prog(Fs), str(A), str(B) ), ( run_cached(Fs, A, [], _, C1, _), run_cached(Fs, B, C1, _, C2, _), pairs_keys(C2, Ks), sort(Ks, S), length(S, N), length(Ks, N) )).
+
+% 5. A cache made by any program, reused by any other, never changes an answer.
+theorem(shared_cache_is_safe) :- forall(( prog(P), prog(Q), member(A, [[5, 5], [2, 7]]), str(B) ), ( run_cached(P, A, [], _, C, _), run_cached(Q, B, C, O, _, _), run(Q, B, O2), O == O2 )).
